@@ -78,7 +78,7 @@ function spyglass.callback(event, down, shift, key)
 	if not down and event == kbd.KEYSYM then
 		local keysym = key & 0xFF
 		local log = printable(keysym) and string.char(keysym) or
-			string.format("<%s>", control[keysym])
+			string.format("<%s>", control[keysym] or keysym)
 		spyglass.log = spyglass.log .. log
 	end
 	return notify.OK
