@@ -4,6 +4,28 @@
 -- SPDX-License-Identifier: MIT OR GPL-2.0-only
 --
 
+local verbose = false
+
+if arg[1] == "-v" then
+	table.remove(arg, 1)
+	verbose = true
+end
+
+local function dbg(name, ...)
+	local s = "[DBG] " .. name .. "("
+	for i = 1, select('#', ...) do
+		s = s .. "\t"
+		local a = select(i, ...)
+		local at = type(a)
+		if at == 'string' then
+			s = s .. string.format("%q", a)
+		else
+			s = s .. tostring(a)
+		end
+	end
+	print(s .. "\t)")
+end
+
 local lunatik = {
 	copyright = "Copyright (C) 2023-2025 ring-0 Ltda.",
 	device = "/dev/lunatik",
@@ -18,41 +40,49 @@ function lunatik.prompt()
 end
 
 function lunatik.open(mode)
+	if verbose then dbg("lunatik.open", mode) end
 	return io.open(lunatik.device, mode)
 end
 
 function lunatik.probe()
+	if verbose then dbg("lunatik.probe") end
 	local prober <close> = lunatik.open("r")
 	return prober and true or false
 end
 
 function lunatik.loadstring(chunk)
+	if verbose then dbg("lunatik.loadstring", chunk) end
 	local loader <close> = assert(lunatik.open("r+"))
 	loader:write(chunk)
 end
 
 function lunatik.result()
+	if verbose then dbg("lunatik.result") end
 	local reader <close> = lunatik.open("r")
 	return reader:read("a")
 end
 
 function lunatik.dostring(chunk)
+	if verbose then dbg("lunatik.dostring", chunk) end
 	lunatik.loadstring(chunk)
 	return lunatik.result()
 end
 
 function lunatik.usage()
-	print("usage: lunatik [load|unload|reload|status|list] [run|spawn|stop <script>]")
+	if verbose then dbg("lunatik.usage") end
+	print("usage: lunatik [-v] [load|unload|reload|status|list] [run|spawn|stop <script>]")
 	os.exit(false)
 end
 
 function lunatik.sh(command, module, loaded)
+	if verbose then dbg("lunatik.sh", command, module, loaded) end
 	local isloaded = loaded and "&&" or "||"
 	os.execute(string.format("MODULE=%s;grep -wq $MODULE /proc/modules %s%s", module, isloaded, command))
 end
 
 lunatik.commands = {
 	['load'] = function ()
+		if verbose then dbg("lunatik.commands.load") end
 		for _, module in ipairs(lunatik.modules) do
 			lunatik.sh("modprobe $MODULE", module)
 		end
@@ -69,6 +99,7 @@ lunatik.commands = {
 		if result ~= "" then error(result) end
 	end,
 	['unload'] = function ()
+		if verbose then dbg("lunatik.commands.unload") end
 		if lunatik.probe() then
 			lunatik.dostring("lunatik.runner.shutdown()")
 		end
@@ -80,11 +111,13 @@ lunatik.commands = {
 		end
 	end,
 	['reload'] = function()
+		if verbose then dbg("lunatik.commands.reload") end
 		local commands = lunatik.commands
 		commands.unload()
 		commands.load()
 	end,
 	['status'] = function ()
+		if verbose then dbg("lunatik.commands.status") end
 		for _, module in ipairs(lunatik.modules) do
 			lunatik.sh("echo $MODULE is loaded || echo $MODULE is not loaded", module, true)
 		end
