@@ -31,7 +31,7 @@ local function worker(control, session)
 		info(id, "started")
 		repeat
 			local ok, err = pcall(echo, session)
-				if not ok then
+			if not ok then
 				return info(id, "aborted")
 			end
 		until (not alive(control) or err or shouldstop())
